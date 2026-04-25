@@ -26,6 +26,16 @@ const int TACH_PIN = 2;   // Fan tachometer input (yellow wire, pin 3) — open-
 #endif
 
 // ============================================================
+//  STATIC IP (optional)
+//  Define STATIC_IP, STATIC_GATEWAY and STATIC_SUBNET in
+//  secrets.ini to assign a fixed address. If not defined,
+//  the board requests an IP from the router via DHCP.
+// ============================================================
+#if defined(STATIC_IP) && (!defined(STATIC_GATEWAY) || !defined(STATIC_SUBNET))
+#  error "STATIC_IP requires STATIC_GATEWAY and STATIC_SUBNET to be defined as well."
+#endif
+
+// ============================================================
 //  PWM SIGNAL
 //  The fan expects a 25 kHz PWM signal on its control wire.
 //  8-bit resolution gives duty-cycle values from 0 to 255.
@@ -177,6 +187,18 @@ void setup() {
 
   // Connect to WiFi
   Serial.print("Connecting to WiFi");
+#ifdef STATIC_IP
+  {
+    IPAddress ip, gw, sn;
+    ip.fromString(STATIC_IP);
+    gw.fromString(STATIC_GATEWAY);
+    sn.fromString(STATIC_SUBNET);
+    WiFi.config(ip, gw, sn);
+    Serial.print(" (static IP: ");
+    Serial.print(STATIC_IP);
+    Serial.print(")");
+  }
+#endif
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);

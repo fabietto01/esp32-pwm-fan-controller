@@ -102,7 +102,7 @@ La velocità non cambia bruscamente. È applicato un limite di variazione massim
 
 Il pin TACH della ventola è un'uscita open-collector che emette **2 impulsi per giro**. L'ESP32 conta gli impulsi tramite interrupt hardware ogni 2 secondi e calcola gli RPM con la formula:
 
-$$\text{RPM} = \frac{\text{impulsi} \times 30000}{\text{tempo\_campione\_ms}}$$
+$$\text{RPM} = \frac{\text{impulsi} \times 30000}{\text{tempo campione [ms]}}$$
 
 Un debounce software da 5 ms filtra i falsi impulsi causati dal rumore elettromagnetico del segnale PWM a 25 kHz.
 
