@@ -1,0 +1,17 @@
+# PlatformIO project files
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# VS Code
+.vscode/
+
+# Build output
+build/
+
+# Misc
+*.pyc
+__pycache__/
+
+# WiFi credentials — copy secrets.ini.example to secrets.ini and fill in your values
+secrets.ini

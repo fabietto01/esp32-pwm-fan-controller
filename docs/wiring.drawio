@@ -1,0 +1,146 @@
+<mxfile host="65bd71144e">
+    <diagram name="Wiring Diagram" id="esp32-fan-controller-wiring">
+        <mxGraphModel dx="1159" dy="815" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="ESP32 PWM Fan Controller — Schema di collegamento" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="30" width="840" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="psu" value="&lt;b&gt;Alimentatore 5V&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="320" width="150" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="psu_5v" value="+ 5V" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#cc0000;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="58" y="362" width="60" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="psu_gnd" value="GND" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="58" y="436" width="60" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="esp32" value="&lt;b&gt;ESP32&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="330" y="120" width="200" height="560" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_5v" value="5V  ←" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontColor=#cc0000;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="338" y="168" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gnd1" value="GND ←" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="338" y="208" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_33v" value="→ 3.3V" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontColor=#ff6600;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="268" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gnd2" value="→ GND" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="308" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_g18" value="→ GPIO 18" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="398" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_g2" value="→ GPIO 2" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontColor=#007700;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="498" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_g4" value="→ GPIO 4" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontColor=#0000cc;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="548" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gnd3" value="→ GND" style="text;html=1;strokeColor=none;fillColor=none;align=right;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="452" y="598" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="dht11" value="&lt;b&gt;DHT11&lt;/b&gt;&lt;br/&gt;Sensore Temp/Umidità" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="200" width="180" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_vcc" value="VCC (3.3V)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontColor=#ff6600;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="688" y="240" width="140" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_gnd" value="GND" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="688" y="270" width="140" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_data" value="DATA (GPIO 18)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="688" y="300" width="140" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="fan" value="&lt;b&gt;Noctua NF-F12 5V PWM&lt;/b&gt;&lt;br/&gt;Ventola 4 pin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="450" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="f_p1" value="Pin 1: GND (Nero)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="685" y="590" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="f_p2" value="Pin 2: +5V (Giallo)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontColor=#cc0000;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="685" y="498" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="f_p3" value="Pin 3: TACH (Verde)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontColor=#007700;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="688" y="530" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="f_p4" value="Pin 4: PWM (Blu)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontColor=#0000cc;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="685" y="560" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1" value="+5V" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=3;fontColor=#cc0000;fontStyle=1;fontSize=10;exitX=1;exitY=0.32;exitDx=0;exitDy=0;entryX=0;entryY=0.10;entryDx=0;entryDy=0;" parent="1" source="psu" target="esp32" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2" value="GND" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;strokeWidth=3;fontStyle=1;fontSize=10;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.18;entryDx=0;entryDy=0;" parent="1" source="psu" target="esp32" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="280" y="448"/>
+                            <mxPoint x="280" y="221"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w3" value="+5V" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=3;fontColor=#cc0000;fontStyle=1;fontSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="psu" target="f_p2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="125" y="80"/>
+                            <mxPoint x="920" y="80"/>
+                            <mxPoint x="920" y="390"/>
+                            <mxPoint x="630" y="390"/>
+                            <mxPoint x="630" y="508"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w4" value="GND" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;strokeWidth=3;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="psu" target="fan" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="125" y="760"/>
+                            <mxPoint x="640" y="760"/>
+                            <mxPoint x="640" y="600"/>
+                        </Array>
+                        <mxPoint x="680" y="620" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w5" value="3.3V" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#ff6600;strokeWidth=2;fontColor=#ff6600;fontStyle=1;fontSize=10;exitX=1;exitY=0.28;exitDx=0;exitDy=0;entryX=0;entryY=0.36;entryDx=0;entryDy=0;" parent="1" source="esp32" target="dht11" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w6" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.34;exitDx=0;exitDy=0;entryX=0;entryY=0.57;entryDx=0;entryDy=0;" parent="1" source="esp32" target="dht11" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w7" value="GPIO 18" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;strokeWidth=2;fontStyle=1;fontSize=10;exitX=1;exitY=0.51;exitDx=0;exitDy=0;entryX=0;entryY=0.79;entryDx=0;entryDy=0;" parent="1" source="esp32" target="dht11" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w8" value="TACH" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#007700;strokeWidth=2;fontColor=#007700;fontStyle=1;fontSize=10;exitX=1;exitY=0.69;exitDx=0;exitDy=0;" parent="1" source="esp32" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="680" y="540" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="605" y="506"/>
+                            <mxPoint x="605" y="540"/>
+                            <mxPoint x="680" y="540"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w9" value="PWM" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0000cc;strokeWidth=2;fontColor=#0000cc;fontStyle=1;fontSize=10;exitX=1;exitY=0.78;exitDx=0;exitDy=0;entryX=-0.002;entryY=0.612;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="esp32" target="fan" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="550" y="557"/>
+                            <mxPoint x="550" y="570"/>
+                            <mxPoint x="605" y="570"/>
+                            <mxPoint x="605" y="572"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend" value="&lt;b&gt;Legenda cavi:&lt;/b&gt;&lt;br/&gt;&lt;font color=&#39;#cc0000&#39;&gt;━━━ +5V&lt;/font&gt;&lt;br/&gt;━━━ GND&lt;br/&gt;&lt;font color=&#39;#ff6600&#39;&gt;━━━ 3.3V&lt;/font&gt;&lt;br/&gt;&lt;font color=&#39;#555555&#39;&gt;━━━ Dati GPIO 18&lt;/font&gt;&lt;br/&gt;&lt;font color=&#39;#007700&#39;&gt;━━━ TACH GPIO 2&lt;/font&gt;&lt;br/&gt;&lt;font color=&#39;#0000cc&#39;&gt;━━━ PWM GPIO 4&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="790" width="180" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="note1" value="&lt;b&gt;⚠ GPIO 2 (TACH)&lt;/b&gt;: pull-up interno&lt;br/&gt;abilitato via software.&lt;br/&gt;Nessun resistore esterno necessario." style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;spacingLeft=6;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="665" width="200" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="note2" value="&lt;b&gt;ℹ Alimentazione ventola&lt;/b&gt;: la ventola è&lt;br/&gt;alimentata direttamente dal PSU 5V.&lt;br/&gt;L&#39;ESP32 fornisce solo i segnali&lt;br/&gt;di controllo (PWM) e lettura (TACH)." style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;spacingLeft=6;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="870" width="240" height="65" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
