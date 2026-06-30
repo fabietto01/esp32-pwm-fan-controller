@@ -1,4 +1,6 @@
 #include <DHT.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <WiFi.h>
 #include <WebServer.h>
 
@@ -6,11 +8,12 @@
 //  HARDWARE PINS
 //  GPIO numbers on the Seeeduino XIAO ESP32-S3.
 // ============================================================
-const int PWM_PIN  = 4;   // PWM output to fan  (blue wire,  pin 4 of 4-pin connector)
-const int DHT_PIN  = 18;  // DHT11 data line
-const int TACH_PIN = 2;   // Fan tachometer input (yellow wire, pin 3) — open-collector,
-                           // pulled up internally; no external resistor required
-#define   DHT_TYPE DHT11  // Sensor model (DHT11 or DHT22)
+const int PWM_PIN   = 4;   // PWM output to fan  (blue wire,  pin 4 of 4-pin connector)
+const int DHT_PIN   = 18;  // DHT11 data line (ambient sensor)
+const int DS18B20_PIN = 5; // DS18B20 OneWire data line (fan-control sensor)
+const int TACH_PIN  = 2;   // Fan tachometer input (yellow wire, pin 3) — open-collector,
+                            // pulled up internally; no external resistor required
+#define   DHT_TYPE DHT11   // Sensor model (DHT11 or DHT22)
 
 // ============================================================
 //  WIFI
@@ -75,15 +78,18 @@ const int SLEW_RATE_DOWN =  70; // Max PWM decrease per cycle (0–255)
 // ============================================================
 //  SENSOR & SERVER INSTANCES
 // ============================================================
-DHT       dht(DHT_PIN, DHT_TYPE); // DHT11 temperature/humidity sensor
-WebServer server(80);              // HTTP server on port 80
+DHT            dht(DHT_PIN, DHT_TYPE);    // DHT11 — ambient temperature/humidity sensor
+OneWire        oneWire(DS18B20_PIN);       // OneWire bus for DS18B20
+DallasTemperature ds18b20(&oneWire);       // DS18B20 — fan-control temperature sensor
+WebServer      server(80);                 // HTTP server on port 80
 
 // ============================================================
 //  RUNTIME STATE
 //  Written by the main loop every 2 s; read by the HTTP handlers.
 // ============================================================
-float         currentTemp     = NAN; // Latest temperature reading (°C); NAN until first valid read
-float         currentHumidity = NAN; // Latest humidity reading (%); NAN until first valid read
+float         controlTemp    = NAN; // DS18B20 temperature (°C) — used for fan control
+float         ambientTemp    = NAN; // DHT11 temperature (°C) — ambient monitoring only
+float         currentHumidity = NAN; // DHT11 humidity (%); NAN until first valid read
 int           currentSpeedPct = 0;   // Fan speed as percentage (0–100), derived from currentPWM
 unsigned long currentRPM      = 0;   // Fan speed in RPM measured via tachometer
 int           currentPWM      = 0;   // Actual PWM value being output, slew-rate limited (0–255)
@@ -121,15 +127,16 @@ int calculateTargetPWM(float temperature) {
 
 // HTTP GET /data — JSON response with all sensor and fan values
 void handleData() {
-  if (isnan(currentTemp)) {
+  if (isnan(controlTemp)) {
     server.send(503, "application/json", "{\"error\":\"sensor not ready\"}");
     return;
   }
   String json = "{";
-  json += "\"temperature_c\":"  + String(currentTemp, 1)     + ",";
-  json += "\"humidity_pct\":"   + String(currentHumidity, 1) + ",";
-  json += "\"fan_speed_pct\":" + String(currentSpeedPct)     + ",";
-  json += "\"fan_rpm\":"        + String(currentRPM);
+  json += "\"control_temperature_c\":"  + String(controlTemp, 1)             + ",";
+  json += "\"ambient_temperature_c\":"  + String(isnan(ambientTemp) ? 0.0f : ambientTemp, 1) + ",";
+  json += "\"humidity_pct\":"           + String(isnan(currentHumidity) ? 0.0f : currentHumidity, 1) + ",";
+  json += "\"fan_speed_pct\":"          + String(currentSpeedPct)             + ",";
+  json += "\"fan_rpm\":"                + String(currentRPM);
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -137,9 +144,12 @@ void handleData() {
 // HTTP GET /metrics — Prometheus text exposition format
 void handleMetrics() {
   String body;
-  body += "# HELP fan_temperature_celsius Temperature reading from DHT11 sensor\n";
-  body += "# TYPE fan_temperature_celsius gauge\n";
-  body += "fan_temperature_celsius " + String(isnan(currentTemp) ? 0.0f : currentTemp, 2) + "\n";
+  body += "# HELP fan_control_temperature_celsius Temperature from DS18B20 sensor (used for fan control)\n";
+  body += "# TYPE fan_control_temperature_celsius gauge\n";
+  body += "fan_control_temperature_celsius " + String(isnan(controlTemp) ? 0.0f : controlTemp, 2) + "\n";
+  body += "# HELP fan_ambient_temperature_celsius Ambient temperature from DHT11 sensor\n";
+  body += "# TYPE fan_ambient_temperature_celsius gauge\n";
+  body += "fan_ambient_temperature_celsius " + String(isnan(ambientTemp) ? 0.0f : ambientTemp, 2) + "\n";
   body += "# HELP fan_humidity_percent Relative humidity from DHT11 sensor\n";
   body += "# TYPE fan_humidity_percent gauge\n";
   body += "fan_humidity_percent " + String(isnan(currentHumidity) ? 0.0f : currentHumidity, 2) + "\n";
@@ -169,7 +179,7 @@ void IRAM_ATTR tachISR() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("DHT11 Fan Controller Starting...");
+  Serial.println("DS18B20 + DHT11 Fan Controller Starting...");
 
   // Configure PWM
   ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
@@ -178,7 +188,8 @@ void setup() {
   // Set initial fan speed to zero
   ledcWrite(PWM_CHANNEL, 0);
 
-  // Start DHT sensor
+  // Start DS18B20 (fan-control sensor) and DHT11 (ambient sensor)
+  ds18b20.begin();
   dht.begin();
 
   // Configure TACH pin with internal pull-up and attach interrupt
@@ -246,22 +257,34 @@ void loop() {
     currentRPM = (pulses * 30000UL) / elapsed;
   }
 
-  float temperature = dht.readTemperature();  // Celsius
-  float humidity    = dht.readHumidity();
+  // Read DS18B20 (fan-control sensor)
+  ds18b20.requestTemperatures();
+  float ds18b20Reading = ds18b20.getTempCByIndex(0);
 
-  // Check for sensor read errors
-  if (isnan(temperature) || isnan(humidity)) {
-    Serial.println("DHT11 read error — keeping previous fan speed");
+  // Check for DS18B20 read error (-127 = device not found / error)
+  if (ds18b20Reading == DEVICE_DISCONNECTED_C) {
+    Serial.println("DS18B20 read error — keeping previous fan speed");
+  } else {
+    controlTemp = ds18b20Reading;
+  }
+
+  // Read DHT11 (ambient sensor — temperature and humidity only)
+  float dhtTemp = dht.readTemperature();
+  float dhtHum  = dht.readHumidity();
+  if (!isnan(dhtTemp))  ambientTemp    = dhtTemp;
+  if (!isnan(dhtHum))   currentHumidity = dhtHum;
+
+  // Fan control uses DS18B20 temperature exclusively.
+  // If DS18B20 has never returned a valid reading, skip fan update.
+  if (isnan(controlTemp)) {
+    Serial.println("Waiting for DS18B20 first valid reading...");
     return;
   }
 
-  currentTemp     = temperature;
-  currentHumidity = humidity;
-
-  // Calculate target PWM from temperature, then apply slew rate limiter.
+  // Calculate target PWM from DS18B20 temperature, then apply slew rate limiter.
   // Speed increases instantly (SLEW_RATE_UP = 255) to react to heat.
   // Speed decreases gradually (SLEW_RATE_DOWN = 70 per cycle ≈ 8 s full range).
-  int targetPWM = calculateTargetPWM(temperature);
+  int targetPWM = calculateTargetPWM(controlTemp);
   if (targetPWM > currentPWM) {
     currentPWM = min(currentPWM + SLEW_RATE_UP, targetPWM);
   } else if (targetPWM < currentPWM) {
@@ -272,13 +295,15 @@ void loop() {
   currentSpeedPct = map(currentPWM, 0, 255, 0, 100);
 
   // Serial output
-  Serial.print("Temperature: ");
-  Serial.print(temperature, 1);
-  Serial.print(" °C | Humidity: ");
-  Serial.print(humidity, 1);
-  Serial.print(" % | PWM Value: ");
+  Serial.print("DS18B20: ");
+  Serial.print(controlTemp, 1);
+  Serial.print(" °C (ctrl) | DHT11: ");
+  Serial.print(isnan(ambientTemp) ? 0.0f : ambientTemp, 1);
+  Serial.print(" °C / ");
+  Serial.print(isnan(currentHumidity) ? 0.0f : currentHumidity, 1);
+  Serial.print(" % (ambient) | PWM: ");
   Serial.print(currentPWM);
-  Serial.print(" | Fan Speed: ");
+  Serial.print(" | Speed: ");
   Serial.print(currentSpeedPct);
   Serial.print(" % | RPM: ");
   Serial.println(currentRPM);

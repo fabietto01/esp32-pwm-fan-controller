@@ -1,7 +1,12 @@
 # ESP32 PWM Fan Controller
 
 Gestore automatico per ventole PWM a 4 pin progettato per la ventilazione di un armadio rack.  
-Il sistema misura la temperatura e l'umidità interna e regola la velocità della ventola di conseguenza, esponendo i dati in tempo reale via HTTP (JSON e Prometheus).
+Il sistema utilizza due sensori di temperatura:
+
+- **DS18B20** — sensore primario collegato alla sorgente di calore da controllare; guida direttamente la curva di velocità della ventola
+- **DHT11** — sensore ambientale (temperatura + umidità dell'ambiente circostante, solo monitoraggio)
+
+I dati di entrambi i sensori sono esposti in tempo reale via HTTP (JSON e Prometheus).
 
 Basato sull'articolo: **[ESP32 PWM Fan Controller — DroneBot Workshop](https://dronebotworkshop.com/esp32-pwm-fan/)**
 
@@ -9,12 +14,12 @@ Basato sull'articolo: **[ESP32 PWM Fan Controller — DroneBot Workshop](https:/
 
 ## Caratteristiche
 
-- Controllo automatico della velocità tramite curva di temperatura a 4 zone
+- Controllo automatico della velocità tramite curva di temperatura a 4 zone (basata su DS18B20)
 - Velocità minima garantita (la ventola non si avvia mai da 0 RPM → riduce lo stress meccanico)
 - Slew rate limiter: la velocità scende lentamente (~8 s da 100% a 0%) ma sale subito al calore
 - Lettura RPM reale via pin TACH con debounce software
 - Web server integrato con due endpoint HTTP:
-  - `GET /data` — risposta JSON con temperatura, umidità, velocità e RPM
+  - `GET /data` — risposta JSON con temperature, umidità, velocità e RPM
   - `GET /metrics` — metriche in formato Prometheus (scrape-ready)
 - Credenziali WiFi separate dal codice sorgente (mai committate in git)
 
@@ -22,12 +27,13 @@ Basato sull'articolo: **[ESP32 PWM Fan Controller — DroneBot Workshop](https:/
 
 ## Hardware utilizzato
 
-| Componente | Link |
+| Componente | Note |
 |---|---|
-| **Ventola Noctua NF-F12 5V PWM** (120 mm, 4 pin, 1500 RPM max) | [noctua.at](https://www.noctua.at/en/products/nf-f12-5v-pwm) |
-| **Sensore DHT11** — temperatura e umidità | [Amazon IT](https://www.amazon.it/AZDelivery-KY-015-Modulo-Sensore-Temperatura/dp/B089W8DB5P/ref=sr_1_1?__mk_it_IT=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=1TPLK7NXI5YHG&dib=eyJ2IjoiMSJ9.lr_G49eRqK5CO8F4-w72oZbW53UfqxqrdN-tFYIcEd0q3wFEQPycQaOcpsG7LjezCNhH6FU8lDYv1NDsxG5lo0aiRLs2MXUHIou2oNHuKzz9JZkyt8RpSYIXoITvScs-e1eOzhwZz20AtzbRC-f8zPdXuFfNb8ScxgveXnjGO8XKvRWk_hNrVU6VVOZkYQdLr2pYcDeDadRxa1xZz6e20j_xxx6FYsESK0_tPaBhFInqJSxwTKs1gEtghlgVnXW3M6I17qUZ0RCi49GMRSN3v6tRPZKLMlgRSn2zPTh4Cq0.IOJ5xdiwod1Wt8F-Ny1B_HXInLleaRHtOk3GG5xJC-g&dib_tag=se&keywords=modulo+sensore+dht1&qid=1777125294&sprefix=modulo+sensore+dht1%2Caps%2C256&sr=8-1) |
-| **ESP32** (WROOM-32D) | [Amazon IT](https://www.amazon.it/DUBEUYEW-ESP32-WROOM-32D-Dual-Mode-Microcontroller-Combination/dp/B0CRK52429/ref=sr_1_6?__mk_it_IT=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=3V3OGPM0HX9XU&dib=eyJ2IjoiMSJ9.RnGe_58KQV7wsu9IESMjhamvA4ELDQHUef1802dCbq9B2WeBO8JtWCKyt0M-2iz4R9yASxHbPE_C5-I1F7RZYotAyM98zClp5FkQdVOcDi5Uf-Ksn-iojZ78Y_20w7h3ByktOnDG-ekJxyLqtp3N0t0npoT2YXDNW7Z2fumr09e9uaWYDU1ZdniiD37gmCMZ4n3TMWIhqJyMCMUifodJnT6ab0kvOpCsVj6Nh3bFbY1BAECgJ_9M2noQNFNd8GxFr3-ra_6n9jfFMK3VyMQQ3MHvuS6T_MDevswvC5b66Sk.QLtWRiELfGocMABfP16av5aE08aMXFb4nUbGIThH18Y&dib_tag=se&keywords=esp32&qid=1777125317&sprefix=esp3%2Caps%2C259&sr=8-6) |
-| **Connettore PWM 4 pin** (adattatore ventola) | [Amazon IT](https://www.amazon.it/Cable-Matters-Adattatore-connettore-ventola/dp/B0CP9X42LM/ref=sr_1_2_sspa?__mk_it_IT=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=3GKN0AKE31CT3&dib=eyJ2IjoiMSJ9.9bc-KQM8N27eSZ69FZFURv3u6jDqkyY2lxTJ4RU3hRY3VnONPnIbb3NE3GIfpBqm5s1E_aSfTbn5BboLLaDhEcl0aiWwM1HWZoC7bwxqE_7qdGtCPDDBYKiz54EaFeHVXVasF_epZ6oKeLQJ8tct5A3Is8-SVuXnp4H49at1BulALZGYl8BUHPpEjPV4DpM0-Ze2ZYraBEMHgQCFx5zX-rGdgo3dEKmE2ykNmeEOnRBWuDZHUSXNJg7HZGTSRG5f6zTrDQDaxgX9EFEBvjnEtVDyKtIozvZ-Ea87kvrSuhw.357EJdgZOGolv57GZDptiH0UZaI7FC5tvQGHPNQ_Ba0&dib_tag=se&keywords=connettore+pwm&qid=1777125336&sprefix=conetore+pvm%2Caps%2C250&sr=8-2-spons&aref=unPYCQWG7H&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1) |
+| **Ventola Noctua NF-F12 5V PWM** (120 mm, 4 pin, 1500 RPM max) | Ventola controllata |
+| **Sensore DS18B20** — temperatura | Sonda di controllo (montata sulla sorgente di calore) |
+| **Sensore DHT11** — temperatura + umidità | Sensore ambientale |
+| **ESP32** (WROOM-32D) | Microcontrollore principale |
+| **Connettore PWM 4 pin** | Adattatore ventola |
 
 ---
 
@@ -55,7 +61,17 @@ Il file [docs/wiring.drawio](docs/wiring.drawio) contiene lo schema completo apr
 | Pin 3 — TACH | Verde | GPIO 2 | Pull-up interno, nessun resistore esterno |
 | Pin 4 — PWM | Blu | GPIO 4 | |
 
-**Sensore DHT11 → ESP32:**
+**Sensore DS18B20 → ESP32 (sonda di controllo):**
+
+| Pin DS18B20 | ESP32 | Note |
+|---|---|---|
+| VCC | 3.3V | |
+| GND | GND | |
+| DATA | GPIO 5 | Resistore pull-up 4.7 kΩ tra DATA e VCC |
+
+> Il DS18B20 richiede un resistore pull-up da **4.7 kΩ** tra il pin DATA e il pin VCC.
+
+**Sensore DHT11 → ESP32 (sensore ambientale):**
 
 | Pin DHT11 | ESP32 |
 |---|---|
@@ -67,7 +83,16 @@ Il file [docs/wiring.drawio](docs/wiring.drawio) contiene lo schema completo apr
 
 ## Come funziona
 
+### Ruolo dei sensori
+
+| Sensore | Ruolo | Dati forniti |
+|---|---|---|
+| **DS18B20** | Sonda di controllo (montata sulla sorgente di calore) | Temperatura → guida la curva ventole |
+| **DHT11** | Sensore ambientale (aria dell'ambiente/rack) | Temperatura + umidità → solo monitoraggio |
+
 ### Curva di temperatura (4 zone)
+
+La velocità della ventola è determinata esclusivamente dalla temperatura letta dal **DS18B20**:
 
 ```
 RPM
@@ -84,7 +109,7 @@ MIN ┤          ┌───────────────/
             IDLE            MIN            MAX
 ```
 
-| Zona | Temperatura | Comportamento |
+| Zona | Temperatura DS18B20 | Comportamento |
 |---|---|---|
 | **OFF** | ≤ 21 °C | Ventola spenta |
 | **IDLE** | 21–25 °C | Gira al minimo (~31%) — mantiene l'aria in movimento |
@@ -108,12 +133,13 @@ Un debounce software da 5 ms filtra i falsi impulsi causati dal rumore elettroma
 
 ### Web server
 
-Il loop principale chiama `server.handleClient()` ad ogni iterazione, garantendo che il server risponda anche durante i cicli di lettura sensori. La lettura DHT11 avviene ogni 2 secondi tramite `millis()` (non-bloccante).
+Il loop principale chiama `server.handleClient()` ad ogni iterazione, garantendo che il server risponda anche durante i cicli di lettura sensori. Le letture dei sensori avvengono ogni 2 secondi tramite `millis()` (non-bloccante).
 
 **`GET /data`** — JSON:
 ```json
 {
-  "temperature_c": 27.3,
+  "control_temperature_c": 42.1,
+  "ambient_temperature_c": 27.3,
   "humidity_pct": 45.0,
   "fan_speed_pct": 52,
   "fan_rpm": 820
@@ -122,9 +148,12 @@ Il loop principale chiama `server.handleClient()` ad ogni iterazione, garantendo
 
 **`GET /metrics`** — Prometheus text exposition:
 ```
-# HELP fan_temperature_celsius Temperature reading from DHT11 sensor
-# TYPE fan_temperature_celsius gauge
-fan_temperature_celsius 27.30
+# HELP fan_control_temperature_celsius Temperature from DS18B20 sensor (used for fan control)
+# TYPE fan_control_temperature_celsius gauge
+fan_control_temperature_celsius 42.10
+# HELP fan_ambient_temperature_celsius Ambient temperature from DHT11 sensor
+# TYPE fan_ambient_temperature_celsius gauge
+fan_ambient_temperature_celsius 27.30
 # HELP fan_humidity_percent Relative humidity from DHT11 sensor
 # TYPE fan_humidity_percent gauge
 fan_humidity_percent 45.00
