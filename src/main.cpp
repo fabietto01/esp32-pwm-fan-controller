@@ -45,22 +45,40 @@ const int PWM_FREQ       = 25000; // Carrier frequency (Hz) — Intel 4-pin fan 
 const int PWM_RESOLUTION = 8;     // Bit depth → 256 steps (0 = off, 255 = 100%)
 const int PWM_CHANNEL    = 0;     // ESP32 LEDC hardware channel (0–15)
 
-const int PWM_MIN = 80;   // Minimum duty cycle while the fan is running (≈ 31%).
-                           // Below this threshold most fans stall. Tune to your model.
 const int PWM_MAX = 255;  // Maximum duty cycle (100%).
                            // Per Intel spec, 100% duty = full speed on compliant fans.
 
 // ============================================================
-//  FAN CURVE — temperature zones (°C)
+//  FAN CURVE — configurable list of (temperature °C, speed %) points.
 //
-//  Zone 1 — OFF:   T ≤ TEMP_IDLE             → PWM 0        (fan stopped)
-//  Zone 2 — IDLE:  TEMP_IDLE < T ≤ TEMP_MIN  → PWM_MIN      (keeps air moving quietly)
-//  Zone 3 — RAMP:  TEMP_MIN  < T < TEMP_MAX  → linear ramp  (PWM_MIN → PWM_MAX)
-//  Zone 4 — FULL:  T ≥ TEMP_MAX              → PWM_MAX      (maximum cooling)
+//  Points must be sorted by ascending temperature.
+//  - Below the FIRST point's temperature  → fan OFF (0%)
+//  - Above the LAST point's temperature   → fan FULL SPEED (100%)
+//  - Between two points                   → linear interpolation
+//
+//  Add/remove/edit points here to reshape the curve; no other code
+//  needs to change. E.g. to add back a flat "idle" plateau before the
+//  ramp starts, insert a point with the same speedPct as the next one
+//  but a lower tempC.
+//
+//  Overridable at build time via PlatformIO build_flags (e.g. in
+//  secrets.ini) without touching this file:
+//    -D FAN_CURVE_CONFIG="{21.0f,20},{25.0f,40},{35.0f,100}"
+//  If FAN_CURVE_CONFIG is not defined, the default curve below is used.
 // ============================================================
-const float TEMP_IDLE = 21.0f; // Fan switches off below this temperature
-const float TEMP_MIN  = 25.0f; // Fan holds minimum speed up to here, then ramp begins
-const float TEMP_MAX  = 35.0f; // Ramp ends here; fan runs at full speed above this
+struct FanCurvePoint {
+  float   tempC;    // Target temperature (°C)
+  uint8_t speedPct; // Desired fan speed at this temperature (0–100)
+};
+
+#ifndef FAN_CURVE_CONFIG
+#define FAN_CURVE_CONFIG { 21.0f,  20 }, \
+                          { 25.0f,  40 }, \
+                          { 35.0f, 100 }
+#endif
+
+const FanCurvePoint FAN_CURVE[] = { FAN_CURVE_CONFIG };
+const int FAN_CURVE_POINTS = sizeof(FAN_CURVE) / sizeof(FAN_CURVE[0]);
 
 // ============================================================
 //  SLEW RATE — maximum PWM change per 2 s sample cycle.
@@ -97,11 +115,13 @@ volatile unsigned long lastTachPulse  = 0; // Timestamp (µs) of the last accept
 
 // ---------------------------------------------------------------
 // calculateTargetPWM()
-// Returns the desired PWM for a given temperature (4 zones):
-//   T ≤ TEMP_IDLE             → 0        (fan off)
-//   TEMP_IDLE < T ≤ TEMP_MIN  → PWM_MIN  (idle — minimum speed, keeps air moving)
-//   TEMP_MIN  < T < TEMP_MAX  → linear ramp PWM_MIN → PWM_MAX
-//   T ≥ TEMP_MAX              → PWM_MAX  (full speed)
+// Returns the desired PWM for a given temperature by walking the
+// FAN_CURVE point list:
+//   T ≤ FAN_CURVE[0].tempC                  → 0   (fan off)
+//   T ≥ FAN_CURVE[last].tempC                → PWM_MAX (full speed)
+//   otherwise                                → linear interpolation
+//                                               between the two
+//                                               bracketing points
 // Returns currentPWM unchanged on NaN (maintains output on sensor error).
 // ---------------------------------------------------------------
 int calculateTargetPWM(float temperature) {
@@ -109,12 +129,20 @@ int calculateTargetPWM(float temperature) {
     return currentPWM;  // Keep current output on sensor error
   }
 
-  if (temperature <= TEMP_IDLE) return 0;
-  if (temperature <= TEMP_MIN)  return PWM_MIN;
-  if (temperature >= TEMP_MAX)  return PWM_MAX;
+  if (temperature <= FAN_CURVE[0].tempC) return 0;
+  if (temperature >= FAN_CURVE[FAN_CURVE_POINTS - 1].tempC) return PWM_MAX;
 
-  float t = (temperature - TEMP_MIN) / (TEMP_MAX - TEMP_MIN);
-  return (int)(PWM_MIN + t * (PWM_MAX - PWM_MIN));
+  for (int i = 0; i < FAN_CURVE_POINTS - 1; i++) {
+    const FanCurvePoint &a = FAN_CURVE[i];
+    const FanCurvePoint &b = FAN_CURVE[i + 1];
+    if (temperature <= b.tempC) {
+      float t        = (temperature - a.tempC) / (b.tempC - a.tempC);
+      float speedPct = a.speedPct + t * (b.speedPct - a.speedPct);
+      return (int)(speedPct / 100.0f * PWM_MAX);
+    }
+  }
+
+  return currentPWM;  // Unreachable: bounds above guarantee a bracketing pair is found
 }
 
 // ---------------------------------------------------------------
@@ -215,10 +243,10 @@ void setup() {
   Serial.println("Web server started — endpoints: /data  /metrics");
 
   Serial.println("Fan controller ready!");
-  Serial.print("Fan curve: 0% at ");
-  Serial.print(TEMP_MIN);
-  Serial.print("°C  →  100% at ");
-  Serial.print(TEMP_MAX);
+  Serial.print("Fan curve: off below ");
+  Serial.print(FAN_CURVE[0].tempC);
+  Serial.print("°C  →  100% at/above ");
+  Serial.print(FAN_CURVE[FAN_CURVE_POINTS - 1].tempC);
   Serial.println("°C");
 }
 

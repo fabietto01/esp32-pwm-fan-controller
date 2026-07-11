@@ -9,7 +9,7 @@ Basato sull'articolo: **[ESP32 PWM Fan Controller — DroneBot Workshop](https:/
 
 ## Caratteristiche
 
-- Controllo automatico della velocità tramite curva di temperatura a 4 zone
+- Controllo automatico della velocità tramite curva di temperatura configurabile (lista di punti temperatura/velocità)
 - Velocità minima garantita (la ventola non si avvia mai da 0 RPM → riduce lo stress meccanico)
 - Slew rate limiter: la velocità scende lentamente (~8 s da 100% a 0%) ma sale subito al calore
 - Lettura RPM reale via pin TACH con debounce software
@@ -67,7 +67,9 @@ Il file [docs/wiring.drawio](docs/wiring.drawio) contiene lo schema completo apr
 
 ## Come funziona
 
-### Curva di temperatura (4 zone)
+### Curva di temperatura (punti configurabili)
+
+La curva è definita in `src/main.cpp` come lista `FAN_CURVE` di punti `{temperatura, velocità %}`, ordinati per temperatura crescente:
 
 ```
 RPM
@@ -76,20 +78,20 @@ MAX ┤                              ┌─────────────�
     │                             /
     │                            /
     │                           /
-MIN ┤          ┌───────────────/
-    │          │
-  0 ┤──────────┘
-    └──────────┬──────────────┬──────────────┬──── °C
-             21°C           25°C           35°C
-            IDLE            MIN            MAX
+MIN ┤                          /
+    │
+  0 ┤─────────────────────────┘
+    └──────────────────────────┬──────────────┬──── °C
+                              25°C           35°C
 ```
 
 | Zona | Temperatura | Comportamento |
 |---|---|---|
-| **OFF** | ≤ 21 °C | Ventola spenta |
-| **IDLE** | 21–25 °C | Gira al minimo (~31%) — mantiene l'aria in movimento |
-| **RAMP** | 25–35 °C | Rampa lineare da 31% a 100% |
-| **FULL** | ≥ 35 °C | Velocità massima |
+| **OFF** | ≤ primo punto (25 °C) | Ventola spenta |
+| **RAMP** | tra i punti definiti | Interpolazione lineare tra i punti della lista |
+| **FULL** | ≥ ultimo punto (35 °C) | Velocità massima (100%) |
+
+Per riottenere un plateau "idle" prima della rampa (es. spenta sotto 21 °C, minimo 31% tra 21 e 25 °C), basta aggiungere un punto in più alla lista — non serve modificare altro codice.
 
 ### Slew rate (gradualità della variazione)
 
@@ -162,13 +164,19 @@ Tutti i parametri sono raggruppati all'inizio di `src/main.cpp`:
 
 | Costante | Default | Descrizione |
 |---|---|---|
-| `TEMP_IDLE` | 21 °C | Temperatura sotto cui la ventola si spegne |
-| `TEMP_MIN` | 25 °C | Inizio della rampa |
-| `TEMP_MAX` | 35 °C | Fine della rampa (velocità massima) |
-| `PWM_MIN` | 80 | Duty cycle minimo mentre gira (~31%) |
+| `FAN_CURVE` | `{21°C,20%}`, `{25°C,40%}`, `{35°C,100%}` | Lista di punti (temperatura, velocità %) che definisce la curva. Sotto il primo punto la ventola si spegne, sopra l'ultimo va al 100%, tra due punti la velocità è interpolata linearmente. Modificabile direttamente nel codice oppure sovrascrivibile a build-time (vedi sotto) |
 | `PWM_MAX` | 255 | Duty cycle massimo (100%) |
 | `SLEW_RATE_UP` | 255 | Max variazione PWM per ciclo in salita |
 | `SLEW_RATE_DOWN` | 70 | Max variazione PWM per ciclo in discesa |
+
+La curva `FAN_CURVE` può anche essere sovrascritta senza modificare `src/main.cpp`, tramite `build_flags` in `secrets.ini` (stesso meccanismo usato per `STATIC_IP`):
+
+```ini
+build_flags =
+    -D FAN_CURVE_CONFIG="{21.0f,20},{25.0f,40},{35.0f,100}"
+```
+
+I punti vanno indicati come coppie `{temperatura_C, velocità_%}` in ordine di temperatura crescente.
 
 ### 3. Flash
 
